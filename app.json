@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "90b8f431-c27b-4758-9c12-7727810b5c6d"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.epunzalan.caseguideadmin",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
