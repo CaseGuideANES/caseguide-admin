@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
@@ -15,29 +17,29 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
-        <div className="premium-card p-6">
+        <Link href="/dashboard/guides" className="premium-card block p-6 transition hover:-translate-y-1 hover:shadow-xl">
           <p className="text-sm font-semibold text-slate-500">Guides</p>
           <h2 className="mt-3 text-3xl font-bold text-slate-950">Manage</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Create, edit, and review anesthesia workflow guides for your group.
+            Create, edit, and review anesthesia workflow guides.
           </p>
-        </div>
+        </Link>
 
-        <div className="premium-card p-6">
+        <Link href="/dashboard/users" className="premium-card block p-6 transition hover:-translate-y-1 hover:shadow-xl">
           <p className="text-sm font-semibold text-slate-500">Users</p>
           <h2 className="mt-3 text-3xl font-bold text-slate-950">Roles</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Control access levels for admins, editors, and viewers.
           </p>
-        </div>
+        </Link>
 
-        <div className="premium-card p-6">
+        <Link href="/dashboard/invites" className="premium-card block p-6 transition hover:-translate-y-1 hover:shadow-xl">
           <p className="text-sm font-semibold text-slate-500">Invites</p>
           <h2 className="mt-3 text-3xl font-bold text-slate-950">Codes</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             Generate invite codes for trusted members of your team.
           </p>
-        </div>
+        </Link>
       </div>
 
       <div className="premium-card p-6">
