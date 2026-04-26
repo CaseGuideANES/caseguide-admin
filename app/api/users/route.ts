@@ -62,7 +62,7 @@ export async function GET() {
       email: user.email || profile?.email || '',
       role: profile?.role || 'viewer',
       group_id: profile?.group_id || null,
-      active: profile?.active ?? true,
+      is_active: profile?.active ?? true,
       created_at: user.created_at,
     };
   });
@@ -78,16 +78,30 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { userId, role, active } = body;
+
+  const userId = body.userId || body.id;
 
   if (!userId) {
-    return Response.json({ error: 'Missing userId' }, { status: 400 });
+    return Response.json({ error: 'Missing user id' }, { status: 400 });
   }
 
   const updates: { role?: string; active?: boolean } = {};
 
-  if (role !== undefined) updates.role = role;
-  if (active !== undefined) updates.active = active;
+  if (body.role !== undefined) {
+    updates.role = body.role;
+  }
+
+  if (body.active !== undefined) {
+    updates.active = body.active;
+  }
+
+  if (body.is_active !== undefined) {
+    updates.active = body.is_active;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return Response.json({ error: 'No updates provided' }, { status: 400 });
+  }
 
   const { error } = await supabaseAdmin
     .from('profiles')
