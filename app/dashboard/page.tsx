@@ -47,8 +47,7 @@ export default function DashboardPage() {
           Admin workspace is live
         </h2>
         <p className="mt-2 text-slate-600">
-          Your mobile app and web interface are connected to the same Supabase
-          backend, so changes made here can support your production workflow.
+          Your mobile app and web interface are connected, so changes made here can support your production workflow!
         </p>
       </div>
     </div>
