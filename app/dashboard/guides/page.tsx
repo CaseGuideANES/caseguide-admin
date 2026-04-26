@@ -82,62 +82,67 @@ export default function GuidesPage() {
   };
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Guides</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-3xl font-bold text-slate-950">Guides</h1>
+          <p className="mt-2 text-slate-600">
             Manage hospital-specific anesthesia case guides.
           </p>
         </div>
 
         <Link
           href="/dashboard/guides/new"
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+          className="premium-button"
         >
           + New Guide
         </Link>
       </div>
 
       {!isAdmin && (
-        <div className="mb-6 rounded-2xl border border-yellow-100 bg-yellow-50 p-4 text-sm text-yellow-800">
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm font-medium text-yellow-800">
           You are not an admin. Delete access is hidden.
         </div>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
+      {/* Table */}
+      <div className="premium-card overflow-hidden">
+        <div className="border-b border-slate-200/70 px-6 py-4">
           <h2 className="font-semibold text-slate-900">All Guides</h2>
         </div>
 
         {loading ? (
           <p className="p-6 text-sm text-slate-500">Loading guides...</p>
         ) : guides.length === 0 ? (
-          <div className="p-8 text-center">
+          <div className="p-10 text-center">
             <p className="text-sm text-slate-500">No guides found.</p>
             <Link
               href="/dashboard/guides/new"
-              className="mt-4 inline-block rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="premium-button mt-4 inline-block"
             >
               Create your first guide
             </Link>
           </div>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
               <tr>
-                <th className="px-6 py-3 font-medium">Title</th>
-                <th className="px-6 py-3 font-medium">Hospital</th>
-                <th className="px-6 py-3 font-medium">Summary</th>
-                <th className="px-6 py-3 font-medium">Created</th>
-                <th className="px-6 py-3 text-right font-medium">Actions</th>
+                <th className="px-6 py-4">Title</th>
+                <th className="px-6 py-4">Hospital</th>
+                <th className="px-6 py-4">Summary</th>
+                <th className="px-6 py-4">Created</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {guides.map((guide) => (
-                <tr key={guide.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-900">
+                <tr
+                  key={guide.id}
+                  className="border-t border-slate-200/70 hover:bg-slate-50"
+                >
+                  <td className="px-6 py-4 font-semibold text-slate-900">
                     {guide.title}
                   </td>
 
@@ -159,7 +164,7 @@ export default function GuidesPage() {
                     <div className="flex justify-end gap-2">
                       <Link
                         href={`/dashboard/guides/${guide.id}/edit`}
-                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                        className="soft-button text-xs"
                       >
                         Edit
                       </Link>
@@ -167,7 +172,7 @@ export default function GuidesPage() {
                       {isAdmin && (
                         <button
                           onClick={() => setDeleteTarget(guide)}
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                          className="danger-button text-xs"
                         >
                           Delete
                         </button>
@@ -181,19 +186,20 @@ export default function GuidesPage() {
         )}
       </div>
 
+      {/* Delete Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
           <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-xl font-bold text-red-600">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100 text-lg font-bold text-red-600">
               !
             </div>
 
-            <h2 className="text-xl font-semibold text-slate-900">
+            <h2 className="text-xl font-bold text-slate-900">
               Delete guide?
             </h2>
 
             <p className="mt-2 text-sm text-slate-600">
-              Are you sure you want to delete{' '}
+              Are you sure you want to delete{" "}
               <span className="font-semibold text-slate-900">
                 {deleteTarget.title}
               </span>
@@ -204,7 +210,7 @@ export default function GuidesPage() {
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="soft-button text-sm"
               >
                 Cancel
               </button>
@@ -212,9 +218,9 @@ export default function GuidesPage() {
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                className="danger-button text-sm"
               >
-                {deleting ? 'Deleting...' : 'Delete Guide'}
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
