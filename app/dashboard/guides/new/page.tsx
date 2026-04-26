@@ -19,31 +19,56 @@ export default function NewGuidePage() {
   const [referenceTitle, setReferenceTitle] = useState('');
   const [referenceUrl, setReferenceUrl] = useState('');
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   async function createGuide() {
     setMessage('');
+    setSaving(true);
+
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    if (!user) {
+      setMessage('Error: You must be signed in.');
+      setSaving(false);
+      return;
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('group_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile?.group_id) {
+      setMessage('Error: Your account is not assigned to a group.');
+      setSaving(false);
+      return;
+    }
 
     const referenceLinks =
       referenceTitle || referenceUrl
         ? [{ title: referenceTitle || '', url: referenceUrl || '' }]
         : [];
 
-    const { error } = await supabase
-      .from('guides')
-      .insert({
-        title: title || '',
-        hospital: hospital || '',
-        author_name: authorName || '',
-        author_title: authorTitle || '',
-        author: authorName || '',
-        summary: summary || '',
-        induction: induction || '',
-        maintenance: maintenance || '',
-        medications: medications || '',
-        equipment: equipment || '',
-        reference_links: referenceLinks,
-        note_images: [],
-      });
+    const { error } = await supabase.from('guides').insert({
+      title: title || '',
+      hospital: hospital || '',
+      author_name: authorName || '',
+      author_title: authorTitle || '',
+      author: authorName || '',
+      summary: summary || '',
+      induction: induction || '',
+      maintenance: maintenance || '',
+      medications: medications || '',
+      equipment: equipment || '',
+      reference_links: referenceLinks,
+      note_images: [],
+      group_id: profile.group_id,
+      created_by: user.id,
+    });
+
+    setSaving(false);
 
     if (error) {
       setMessage(`Error: ${error.message}`);
@@ -62,7 +87,13 @@ export default function NewGuidePage() {
       <h1 className="mb-6 text-2xl font-semibold">Add Guide</h1>
 
       {message && (
-        <div className="mb-4 rounded bg-green-100 p-3 text-green-700">
+        <div
+          className={`mb-4 rounded p-3 ${
+            message.startsWith('Error')
+              ? 'bg-red-100 text-red-700'
+              : 'bg-green-100 text-green-700'
+          }`}
+        >
           {message}
         </div>
       )}
@@ -82,8 +113,12 @@ export default function NewGuidePage() {
       <input className="mb-3 w-full rounded border px-3 py-2" placeholder="Reference Title optional" value={referenceTitle} onChange={(e) => setReferenceTitle(e.target.value)} />
       <input className="mb-4 w-full rounded border px-3 py-2" placeholder="Reference URL optional" value={referenceUrl} onChange={(e) => setReferenceUrl(e.target.value)} />
 
-      <button onClick={createGuide} className="rounded bg-black px-4 py-2 text-white">
-        Save Guide
+      <button
+        onClick={createGuide}
+        disabled={saving}
+        className="rounded bg-black px-4 py-2 text-white disabled:opacity-60"
+      >
+        {saving ? 'Saving...' : 'Save Guide'}
       </button>
     </div>
   );
