@@ -49,7 +49,36 @@ export default function EditGuidePage() {
     setMaintenance(data.maintenance || '');
     setMedications(data.medications || '');
     setEquipment(data.equipment || '');
-    setNoteImages(data.note_images || []);
+    const rawImages = Array.isArray(data.note_images) ? data.note_images : [];
+
+const images = await Promise.all(
+  rawImages.map(async (img: any) => {
+    if (typeof img === 'string') {
+      return img;
+    }
+
+    if (img?.url) {
+      return img.url;
+    }
+
+    if (img?.path) {
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('guide-images')
+        .createSignedUrl(img.path, 60 * 60);
+
+      if (signedError) {
+        console.log('Signed URL error:', signedError.message);
+        return null;
+      }
+
+      return signedData.signedUrl;
+    }
+
+    return null;
+  })
+);
+
+setNoteImages(images.filter(Boolean) as string[]);
 
     const firstReference = data.reference_links?.[0];
     setReferenceTitle(firstReference?.title || '');
