@@ -76,15 +76,20 @@ export default function SignInPage() {
               Password
             </label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-              placeholder="••••••••"
-            />
+  type="password"
+  value={password}
+  onChange={(e) => {
+    setPassword(e.target.value);
+    setError("");
+  }}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      e.currentTarget.form?.requestSubmit();
+    }
+  }}
+  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+  placeholder="••••••••"
+/>
           </div>
 
           {error && (
