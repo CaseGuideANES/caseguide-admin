@@ -12,8 +12,13 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const signIn = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const signIn = async (
+    e?: React.FormEvent | React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    e?.preventDefault();
+
+    if (loading) return;
+
     setError("");
     setLoading(true);
 
@@ -81,6 +86,11 @@ export default function SignInPage() {
               onChange={(e) => {
                 setPassword(e.target.value);
                 setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  signIn(e);
+                }
               }}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
               placeholder="••••••••"
