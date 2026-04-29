@@ -48,24 +48,38 @@ export async function GET() {
 
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, role, group_id, active');
+    .select('id, email, role, group_id, active, first_name, last_name');
 
   if (profilesError) {
     return Response.json({ error: profilesError.message }, { status: 500 });
   }
 
   const users = authUsers.users.map((user) => {
-    const profile = profiles?.find((p) => p.id === user.id);
+  const profile = profiles?.find((p) => p.id === user.id);
+  const metadata = user.user_metadata || {};
 
-    return {
-      id: user.id,
-      email: user.email || profile?.email || '',
-      role: profile?.role || 'viewer',
-      group_id: profile?.group_id || null,
-      is_active: profile?.active ?? true,
-      created_at: user.created_at,
-    };
-  });
+  const first_name =
+    profile?.first_name ||
+    metadata.first_name ||
+    metadata.firstName ||
+    '';
+
+  const last_name =
+    profile?.last_name ||
+    metadata.last_name ||
+    metadata.lastName ||
+    '';
+
+  return {
+    id: user.id,
+    email: user.email || profile?.email || '',
+    first_name,
+    last_name,
+    role: profile?.role || 'viewer',
+    group_id: profile?.group_id || null,
+    is_active: profile?.active ?? true,
+  };
+});
 
   return Response.json({ users });
 }
@@ -78,14 +92,18 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-
   const userId = body.userId || body.id;
 
   if (!userId) {
     return Response.json({ error: 'Missing user id' }, { status: 400 });
   }
 
-  const updates: { role?: string; active?: boolean } = {};
+  const updates: {
+  role?: string;
+  active?: boolean;
+  first_name?: string;
+  last_name?: string;
+} = {};
 
   if (body.role !== undefined) {
     updates.role = body.role;
@@ -98,7 +116,13 @@ export async function PATCH(request: Request) {
   if (body.is_active !== undefined) {
     updates.active = body.is_active;
   }
+  if (body.first_name !== undefined) {
+  updates.first_name = body.first_name;
+}
 
+if (body.last_name !== undefined) {
+  updates.last_name = body.last_name;
+}
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: 'No updates provided' }, { status: 400 });
   }
@@ -110,6 +134,38 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 });
+  }
+
+  return Response.json({ success: true });
+}
+
+export async function DELETE(request: Request) {
+  const isAdmin = await requireAdmin();
+
+  if (!isAdmin) {
+    return Response.json({ error: 'Not authorized' }, { status: 403 });
+  }
+
+  const body = await request.json();
+  const userId = body.userId || body.id;
+
+  if (!userId) {
+    return Response.json({ error: 'Missing user id' }, { status: 400 });
+  }
+
+  const { error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .delete()
+    .eq('id', userId);
+
+  if (profileError) {
+    return Response.json({ error: profileError.message }, { status: 500 });
+  }
+
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    return Response.json({ error: authError.message }, { status: 500 });
   }
 
   return Response.json({ success: true });
