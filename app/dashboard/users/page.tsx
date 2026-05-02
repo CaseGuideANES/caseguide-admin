@@ -15,6 +15,8 @@ type UserProfile = {
   active: boolean;
 };
 
+const MAX_ADMINS = 3;
+
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,8 @@ export default function UsersPage() {
       getSortName(a).toLowerCase().localeCompare(getSortName(b).toLowerCase())
     );
   };
+
+  const activeAdminCount = users.filter((u) => u.role === 'admin' && u.active).length;
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -95,31 +99,62 @@ export default function UsersPage() {
     loadUsers();
   }, []);
 
-  const updateRole = async (id: string, role: Role) => {
-    await supabase.from('profiles').update({ role }).eq('id', id);
+  const updateRole = async (id: string, nextRole: Role) => {
+    const targetUser = users.find((u) => u.id === id);
+
+    if (nextRole === 'admin') {
+      const wouldCreateNewAdmin = targetUser?.role !== 'admin';
+
+      if (wouldCreateNewAdmin && activeAdminCount >= MAX_ADMINS) {
+        alert('Only 3 active admins are allowed per group.');
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('profiles').update({ role: nextRole }).eq('id', id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     loadUsers();
   };
 
   const toggleActive = async (id: string, active: boolean) => {
-    await supabase.from('profiles').update({ active }).eq('id', id);
+    const targetUser = users.find((u) => u.id === id);
+
+    if (active && targetUser?.role === 'admin' && activeAdminCount >= MAX_ADMINS) {
+      alert('This user is an admin. Only 3 active admins are allowed per group.');
+      return;
+    }
+
+    const { error } = await supabase.from('profiles').update({ active }).eq('id', id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
     loadUsers();
   };
 
   const UserCard = ({ user }: { user: UserProfile }) => {
+    const adminButtonDisabled = user.role !== 'admin' && activeAdminCount >= MAX_ADMINS;
+
     return (
       <div
         className={`rounded-xl border p-4 shadow-sm ${
           user.active ? 'bg-white border-gray-300' : 'bg-red-50 border-red-300'
         }`}
       >
-        <div className="text-lg font-semibold text-gray-900">
-          {getDisplayName(user)}
-        </div>
+        <div className="text-lg font-semibold text-gray-900">{getDisplayName(user)}</div>
 
         <div className="text-sm text-gray-500">{user.email}</div>
 
         <div className="text-sm mt-2 text-gray-700">
           Role: <span className="font-bold">{user.role}</span>
+          {!user.active ? <span className="font-bold text-red-700"> • DEACTIVATED</span> : null}
         </div>
 
         <div className="flex gap-2 mt-3 flex-wrap">
@@ -138,8 +173,13 @@ export default function UsersPage() {
           </button>
 
           <button
+            disabled={adminButtonDisabled}
             onClick={() => updateRole(user.id, 'admin')}
-            className="px-3 py-1 bg-purple-600 rounded text-white"
+            className={`px-3 py-1 rounded text-white ${
+              adminButtonDisabled
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-purple-600'
+            }`}
           >
             Admin
           </button>
@@ -169,7 +209,7 @@ export default function UsersPage() {
         <p>Loading users...</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
             <div className="bg-white border border-gray-300 rounded-xl p-4 shadow-sm">
               <p className="text-sm text-gray-500 font-medium">Total Users</p>
               <p className="text-2xl font-bold text-blue-900">{users.length}</p>
@@ -180,11 +220,16 @@ export default function UsersPage() {
               <p className="text-2xl font-bold text-blue-900">{totalActiveUsers}</p>
             </div>
 
+            <div className="bg-white border border-gray-300 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-gray-500 font-medium">Active Admins</p>
+              <p className="text-2xl font-bold text-blue-900">
+                {activeAdminCount} / {MAX_ADMINS}
+              </p>
+            </div>
+
             <div className="bg-red-50 border border-red-300 rounded-xl p-4 shadow-sm">
               <p className="text-sm text-red-600 font-medium">Deactivated</p>
-              <p className="text-2xl font-bold text-red-700">
-                {totalDeactivatedUsers}
-              </p>
+              <p className="text-2xl font-bold text-red-700">{totalDeactivatedUsers}</p>
             </div>
           </div>
 
