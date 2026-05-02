@@ -1,7 +1,7 @@
 'use client';
 
 import { supabase } from '@/src/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Role = 'viewer' | 'editor' | 'admin';
 
@@ -18,6 +18,7 @@ type UserProfile = {
 export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const getDisplayName = (user: UserProfile) => {
     if (user.full_name) return user.full_name;
@@ -40,6 +41,39 @@ export default function UsersPage() {
     );
   };
 
+  const sortUsers = (data: UserProfile[]) => {
+    return [...data].sort((a, b) =>
+      getSortName(a).toLowerCase().localeCompare(getSortName(b).toLowerCase())
+    );
+  };
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+
+    if (!q) return users;
+
+    return users.filter((user) => {
+      const name = getDisplayName(user).toLowerCase();
+      const email = user.email?.toLowerCase() ?? '';
+      const role = user.role.toLowerCase();
+
+      return name.includes(q) || email.includes(q) || role.includes(q);
+    });
+  }, [users, searchQuery]);
+
+  const activeUsers = useMemo(
+    () => sortUsers(filteredUsers.filter((u) => u.active)),
+    [filteredUsers]
+  );
+
+  const deactivatedUsers = useMemo(
+    () => sortUsers(filteredUsers.filter((u) => !u.active)),
+    [filteredUsers]
+  );
+
+  const totalActiveUsers = users.filter((u) => u.active).length;
+  const totalDeactivatedUsers = users.filter((u) => !u.active).length;
+
   const loadUsers = async () => {
     setLoading(true);
 
@@ -53,11 +87,7 @@ export default function UsersPage() {
       return;
     }
 
-    const sorted = (data ?? []).sort((a: any, b: any) =>
-      getSortName(a).toLowerCase().localeCompare(getSortName(b).toLowerCase())
-    );
-
-    setUsers(sorted);
+    setUsers((data ?? []) as UserProfile[]);
     setLoading(false);
   };
 
@@ -75,63 +105,130 @@ export default function UsersPage() {
     loadUsers();
   };
 
+  const UserCard = ({ user }: { user: UserProfile }) => {
+    return (
+      <div
+        className={`rounded-xl border p-4 shadow-sm ${
+          user.active ? 'bg-white border-gray-300' : 'bg-red-50 border-red-300'
+        }`}
+      >
+        <div className="text-lg font-semibold text-gray-900">
+          {getDisplayName(user)}
+        </div>
+
+        <div className="text-sm text-gray-500">{user.email}</div>
+
+        <div className="text-sm mt-2 text-gray-700">
+          Role: <span className="font-bold">{user.role}</span>
+        </div>
+
+        <div className="flex gap-2 mt-3 flex-wrap">
+          <button
+            onClick={() => updateRole(user.id, 'viewer')}
+            className="px-3 py-1 bg-slate-700 rounded text-white"
+          >
+            Viewer
+          </button>
+
+          <button
+            onClick={() => updateRole(user.id, 'editor')}
+            className="px-3 py-1 bg-blue-600 rounded text-white"
+          >
+            Editor
+          </button>
+
+          <button
+            onClick={() => updateRole(user.id, 'admin')}
+            className="px-3 py-1 bg-purple-600 rounded text-white"
+          >
+            Admin
+          </button>
+
+          <button
+            onClick={() => toggleActive(user.id, !user.active)}
+            className={`px-3 py-1 rounded text-white ${
+              user.active ? 'bg-red-700' : 'bg-green-700'
+            }`}
+          >
+            {user.active ? 'Deactivate' : 'Reactivate'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-4">Manage Users</h1>
+    <div className="min-h-screen bg-gray-100 p-6 text-gray-900">
+      <h1 className="text-3xl font-bold mb-2 text-blue-900">Manage Users</h1>
+
+      <p className="text-blue-800 mb-6">
+        Promote, demote, deactivate, or reactivate users.
+      </p>
 
       {loading ? (
         <p>Loading users...</p>
       ) : (
-        <div className="space-y-4">
-          {users.map((user) => (
-            <div
-              key={user.id}
-              className="bg-slate-800 p-4 rounded-xl border border-slate-700"
-            >
-              <div className="text-lg font-semibold">
-                {getDisplayName(user)}
-              </div>
-
-              <div className="text-sm text-gray-400">
-                {user.email}
-              </div>
-
-              <div className="text-sm mt-2">
-                Role: <span className="font-bold">{user.role}</span>
-              </div>
-
-              <div className="flex gap-2 mt-3 flex-wrap">
-                <button
-                  onClick={() => updateRole(user.id, 'viewer')}
-                  className="px-3 py-1 bg-slate-700 rounded"
-                >
-                  Viewer
-                </button>
-
-                <button
-                  onClick={() => updateRole(user.id, 'editor')}
-                  className="px-3 py-1 bg-blue-600 rounded"
-                >
-                  Editor
-                </button>
-
-                <button
-                  onClick={() => updateRole(user.id, 'admin')}
-                  className="px-3 py-1 bg-purple-600 rounded"
-                >
-                  Admin
-                </button>
-
-                <button
-                  onClick={() => toggleActive(user.id, !user.active)}
-                  className="px-3 py-1 bg-red-700 rounded"
-                >
-                  {user.active ? 'Deactivate' : 'Activate'}
-                </button>
-              </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-white border border-gray-300 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-gray-500 font-medium">Total Users</p>
+              <p className="text-2xl font-bold text-blue-900">{users.length}</p>
             </div>
-          ))}
-        </div>
+
+            <div className="bg-white border border-gray-300 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-gray-500 font-medium">Active</p>
+              <p className="text-2xl font-bold text-blue-900">{totalActiveUsers}</p>
+            </div>
+
+            <div className="bg-red-50 border border-red-300 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-red-600 font-medium">Deactivated</p>
+              <p className="text-2xl font-bold text-red-700">
+                {totalDeactivatedUsers}
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, email, or role..."
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm outline-none focus:border-blue-700 focus:ring-2 focus:ring-blue-200"
+            />
+          </div>
+
+          <section className="mb-10">
+            <h2 className="text-xl font-bold mb-4 text-blue-900">
+              Active Users ({activeUsers.length})
+            </h2>
+
+            {activeUsers.length === 0 ? (
+              <p className="text-slate-500">No active users match your search.</p>
+            ) : (
+              <div className="space-y-4">
+                {activeUsers.map((user) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-xl font-bold mb-4 text-red-700">
+              Deactivated Users ({deactivatedUsers.length})
+            </h2>
+
+            {deactivatedUsers.length === 0 ? (
+              <p className="text-slate-500">No deactivated users found.</p>
+            ) : (
+              <div className="space-y-4">
+                {deactivatedUsers.map((user) => (
+                  <UserCard key={user.id} user={user} />
+                ))}
+              </div>
+            )}
+          </section>
+        </>
       )}
     </div>
   );
