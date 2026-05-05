@@ -172,8 +172,11 @@ export default function HomePage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs font-medium text-slate-400">
+<p className="mt-6 text-center text-xs font-medium text-slate-400">
           Admin access only
+        </p>
+        <p className="mt-2 text-center text-xs text-slate-400">
+          <a href="/privacy" className="hover:underline">Privacy Policy</a>
         </p>
       </div>
     </main>
