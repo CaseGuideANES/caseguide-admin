@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -7,19 +6,9 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
 
   if (token_hash && type) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    return NextResponse.redirect(
+      `caseguide://reset-password?token_hash=${token_hash}&type=${type}`
     );
-
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash,
-      type: type as any,
-    });
-
-    if (!error) {
-      return NextResponse.redirect("caseguide://reset-password");
-    }
   }
 
   return NextResponse.redirect(new URL("/sign-in", request.url));
