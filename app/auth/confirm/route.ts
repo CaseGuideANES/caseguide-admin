@@ -6,8 +6,10 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
 
   if (token_hash && type) {
-    return NextResponse.redirect(
-      `caseguide://reset-password?token_hash=${token_hash}&type=${type}`
+    const deepLink = `caseguide://reset-password?token_hash=${token_hash}&type=${type}`;
+    return new NextResponse(
+      `<html><head><meta http-equiv="refresh" content="0;url=${deepLink}"></head><body><a href="${deepLink}">Open App</a></body></html>`,
+      { headers: { "Content-Type": "text/html" } }
     );
   }
 
