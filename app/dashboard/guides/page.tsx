@@ -37,9 +37,31 @@ export default function GuidesPage() {
   const loadGuides = async () => {
     setLoading(true);
 
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('group_id')
+      .eq('id', user.id)
+      .single();
+
+    const gid = profileData?.group_id;
+
+    if (!gid) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('guides')
       .select('id, title, hospital, summary, created_at')
+      .eq('group_id', gid)
       .order('title', { ascending: true });
 
     setLoading(false);

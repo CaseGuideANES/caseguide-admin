@@ -153,6 +153,12 @@ export async function DELETE(request: Request) {
     return Response.json({ error: 'Missing user id' }, { status: 400 });
   }
 
+  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+
+  if (authError) {
+    return Response.json({ error: authError.message }, { status: 500 });
+  }
+
   const { error: profileError } = await supabaseAdmin
     .from('profiles')
     .delete()
@@ -160,12 +166,6 @@ export async function DELETE(request: Request) {
 
   if (profileError) {
     return Response.json({ error: profileError.message }, { status: 500 });
-  }
-
-  const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-
-  if (authError) {
-    return Response.json({ error: authError.message }, { status: 500 });
   }
 
   return Response.json({ success: true });

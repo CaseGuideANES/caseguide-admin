@@ -6,15 +6,14 @@ import { useEffect, useState } from 'react';
 type InviteCode = {
   id: string;
   code: string;
-  role: string;
+  group_id: string;
   created_at: string;
-  used_at: string | null;
+  is_active: boolean;
 };
 
 export default function InvitesPage() {
   const [invites, setInvites] = useState<InviteCode[]>([]);
   const [groupId, setGroupId] = useState<string | null>(null);
-  const [role, setRole] = useState('viewer');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -38,9 +37,23 @@ export default function InvitesPage() {
   };
 
   const loadInvites = async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    if (!user) return;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('group_id')
+      .eq('id', user.id)
+      .single();
+
+    const gid = profileData?.group_id;
+    if (!gid) return;
+
     const { data, error } = await supabase
-      .from('invite_codes')
-      .select('id, code, role, created_at, used_at')
+      .from('invites')
+      .select('id, code, group_id, created_at, is_active')
+      .eq('group_id', gid)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -73,9 +86,8 @@ export default function InvitesPage() {
       return;
     }
 
-    const { error } = await supabase.from('invite_codes').insert({
+    const { error } = await supabase.from('invites').insert({
       code: generateCode(),
-      role,
       group_id: groupId,
       created_by: user.id,
     });
@@ -107,24 +119,10 @@ export default function InvitesPage() {
 
       {isAdmin && (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <label className="text-sm font-medium text-slate-700">
-            Invite Role
-          </label>
-
-          <select
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="mt-2 block w-full max-w-xs rounded-xl border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="viewer">Viewer</option>
-            <option value="editor">Editor</option>
-            <option value="admin">Admin</option>
-          </select>
-
           <button
             onClick={createInvite}
             disabled={loading}
-            className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? 'Generating...' : 'Generate Invite Code'}
           </button>
@@ -151,19 +149,18 @@ export default function InvitesPage() {
                   </p>
 
                   <p className="text-sm text-slate-500">
-                    Role: {invite.role} • Created:{' '}
-                    {new Date(invite.created_at).toLocaleDateString()}
+                    Created: {new Date(invite.created_at).toLocaleDateString()}
                   </p>
                 </div>
 
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    invite.used_at
+                    !invite.is_active
                       ? 'bg-slate-100 text-slate-600'
                       : 'bg-green-100 text-green-700'
                   }`}
                 >
-                  {invite.used_at ? 'Used' : 'Active'}
+                  {invite.is_active ? 'Active' : 'Used'}
                 </span>
               </div>
             ))}

@@ -6,9 +6,12 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
 
   if (token_hash && type) {
-    const deepLink = `caseguide://reset-password?token_hash=${token_hash}&type=${type}`;
+    const safeTokenHash = encodeURIComponent(token_hash);
+    const safeType = encodeURIComponent(type);
+    const deepLink = `caseguide://reset-password?token_hash=${safeTokenHash}&type=${safeType}`;
+    const encodedDeepLink = deepLink.replace(/"/g, '&quot;');
     return new NextResponse(
-      `<html><head><meta http-equiv="refresh" content="0;url=${deepLink}"></head><body><a href="${deepLink}">Open App</a></body></html>`,
+      `<html><head><meta http-equiv="refresh" content="0;url=${encodedDeepLink}"></head><body><a href="${encodedDeepLink}">Open App</a></body></html>`,
       { headers: { "Content-Type": "text/html" } }
     );
   }

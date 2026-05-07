@@ -20,7 +20,7 @@ export default function EditGuidePage() {
   const [equipment, setEquipment] = useState('');
   const [referenceTitle, setReferenceTitle] = useState('');
   const [referenceUrl, setReferenceUrl] = useState('');
-  const [noteImages, setNoteImages] = useState<string[]>([]);
+  const [noteImages, setNoteImages] = useState<{ path: string; caption: string; displayUrl: string }[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [message, setMessage] = useState('');
 
@@ -51,34 +51,31 @@ export default function EditGuidePage() {
     setEquipment(data.equipment || '');
     const rawImages = Array.isArray(data.note_images) ? data.note_images : [];
 
-const images = await Promise.all(
-  rawImages.map(async (img: any) => {
-    if (typeof img === 'string') {
-      return img;
-    }
+    const images = await Promise.all(
+      rawImages.map(async (img: any) => {
+        if (typeof img === 'string') {
+          // Legacy plain-URL format — display as-is, path unrecoverable
+          return { path: '', caption: '', displayUrl: img };
+        }
 
-    if (img?.url) {
-      return img.url;
-    }
+        if (img?.path) {
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('guide-images')
+            .createSignedUrl(img.path, 60 * 60);
 
-    if (img?.path) {
-      const { data: signedData, error: signedError } = await supabase.storage
-        .from('guide-images')
-        .createSignedUrl(img.path, 60 * 60);
+          if (signedError) {
+            console.error('Signed URL error:', signedError.message);
+            return null;
+          }
 
-      if (signedError) {
-        console.log('Signed URL error:', signedError.message);
+          return { path: img.path, caption: img.caption ?? '', displayUrl: signedData.signedUrl };
+        }
+
         return null;
-      }
+      })
+    );
 
-      return signedData.signedUrl;
-    }
-
-    return null;
-  })
-);
-
-setNoteImages(images.filter(Boolean) as string[]);
+    setNoteImages(images.filter(Boolean) as { path: string; caption: string; displayUrl: string }[]);
 
     const firstReference = data.reference_links?.[0];
     setReferenceTitle(firstReference?.title || '');
@@ -155,7 +152,7 @@ setNoteImages(images.filter(Boolean) as string[]);
     });
   }
 
-  async function uploadImage(): Promise<string | null> {
+  async function uploadImage(): Promise<{ path: string; displayUrl: string } | null> {
     if (!imageFile) return null;
 
     try {
@@ -175,11 +172,16 @@ setNoteImages(images.filter(Boolean) as string[]);
         return null;
       }
 
-      const { data } = supabase.storage
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('guide-images')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60);
 
-      return data.publicUrl;
+      if (signedError) {
+        setMessage(`Signed URL error: ${signedError.message}`);
+        return null;
+      }
+
+      return { path: filePath, displayUrl: signedData.signedUrl };
     } catch (err: any) {
       setMessage(`Image resize error: ${err.message}`);
       return null;
@@ -189,12 +191,12 @@ setNoteImages(images.filter(Boolean) as string[]);
   async function updateGuide() {
     setMessage('');
 
-    let imageUrl: string | null = null;
+    let newImage: { path: string; displayUrl: string } | null = null;
 
     if (imageFile) {
-      imageUrl = await uploadImage();
+      newImage = await uploadImage();
 
-      if (!imageUrl) return;
+      if (!newImage) return;
     }
 
     const referenceLinks =
@@ -202,7 +204,12 @@ setNoteImages(images.filter(Boolean) as string[]);
         ? [{ title: referenceTitle || '', url: referenceUrl || '' }]
         : [];
 
-    const updatedImages = imageUrl ? [...noteImages, imageUrl] : noteImages;
+    const updatedImages = newImage
+      ? [...noteImages, { path: newImage.path, caption: '', displayUrl: newImage.displayUrl }]
+      : noteImages;
+
+    // Save only { path, caption } to DB — mobile app expects this format
+    const dbImages = updatedImages.map(({ path, caption }) => ({ path, caption }));
 
     const { error } = await supabase
       .from('guides')
@@ -218,7 +225,7 @@ setNoteImages(images.filter(Boolean) as string[]);
         medications: medications || '',
         equipment: equipment || '',
         reference_links: referenceLinks,
-        note_images: updatedImages,
+        note_images: dbImages,
       })
       .eq('id', guideId);
 
@@ -255,8 +262,7 @@ setNoteImages(images.filter(Boolean) as string[]);
   }
 
   function removeImage(indexToRemove: number) {
-    const updated = noteImages.filter((_, index) => index !== indexToRemove);
-    setNoteImages(updated);
+    setNoteImages(noteImages.filter((_, index) => index !== indexToRemove));
   }
 
   return (
@@ -289,9 +295,9 @@ setNoteImages(images.filter(Boolean) as string[]);
 
         {noteImages.length > 0 ? (
           <div className="mb-4 grid grid-cols-2 gap-3">
-            {noteImages.map((imageUrl, index) => (
+            {noteImages.map((image, index) => (
               <div key={index} className="rounded border p-2">
-                <img src={imageUrl} alt={`Guide image ${index + 1}`} className="mb-2 h-40 w-full rounded object-cover" />
+                <img src={image.displayUrl} alt={`Guide image ${index + 1}`} className="mb-2 h-40 w-full rounded object-cover" />
                 <button type="button" onClick={() => removeImage(index)} className="rounded bg-red-600 px-3 py-1 text-sm text-white">
                   Remove
                 </button>

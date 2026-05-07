@@ -3,7 +3,7 @@
 import { supabase } from '@/src/lib/supabase/client';
 import { useEffect, useMemo, useState } from 'react';
 
-type Role = 'viewer' | 'editor' | 'admin';
+type Role = 'viewer' | 'editor' | 'admin' | 'super_admin';
 
 type UserProfile = {
   id: string;
@@ -21,6 +21,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState<Role | null>(null);
 
   const getDisplayName = (user: UserProfile) => {
     if (user.full_name) return user.full_name;
@@ -50,6 +51,7 @@ export default function UsersPage() {
   };
 
   const activeAdminCount = users.filter((u) => u.role === 'admin' && u.active).length;
+  const activeSuperAdminCount = users.filter((u) => u.role === 'super_admin' && u.active).length;
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -81,9 +83,32 @@ export default function UsersPage() {
   const loadUsers = async () => {
     setLoading(true);
 
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('group_id, role')
+      .eq('id', user.id)
+      .single();
+
+    const gid = profileData?.group_id;
+    setCurrentUserRole((profileData?.role as Role) ?? null);
+
+    if (!gid) {
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, full_name, first_name, last_name, role, active');
+      .select('id, email, full_name, first_name, last_name, role, active')
+      .eq('group_id', gid);
 
     if (error) {
       console.error(error);
@@ -111,6 +136,15 @@ export default function UsersPage() {
       }
     }
 
+    if (nextRole === 'super_admin') {
+      const wouldCreateNewSuperAdmin = targetUser?.role !== 'super_admin';
+
+      if (wouldCreateNewSuperAdmin && activeSuperAdminCount >= 1) {
+        alert('Only 1 super admin is allowed per group. Demote the current super admin first.');
+        return;
+      }
+    }
+
     const { error } = await supabase.from('profiles').update({ role: nextRole }).eq('id', id);
 
     if (error) {
@@ -121,15 +155,20 @@ export default function UsersPage() {
     loadUsers();
   };
 
-  const toggleActive = async (id: string, active: boolean) => {
+  const toggleActive = async (id: string, nextActive: boolean) => {
     const targetUser = users.find((u) => u.id === id);
 
-    if (active && targetUser?.role === 'admin' && activeAdminCount >= MAX_ADMINS) {
+    if (nextActive && targetUser?.role === 'admin' && activeAdminCount >= MAX_ADMINS) {
       alert('This user is an admin. Only 3 active admins are allowed per group.');
       return;
     }
 
-    const { error } = await supabase.from('profiles').update({ active }).eq('id', id);
+    if (nextActive && targetUser?.role === 'super_admin' && activeSuperAdminCount >= 1) {
+      alert('This user is a super admin. Only 1 super admin is allowed per group.');
+      return;
+    }
+
+    const { error } = await supabase.from('profiles').update({ active: nextActive }).eq('id', id);
 
     if (error) {
       alert(error.message);
@@ -140,7 +179,14 @@ export default function UsersPage() {
   };
 
   const UserCard = ({ user }: { user: UserProfile }) => {
-    const adminButtonDisabled = user.role !== 'admin' && activeAdminCount >= MAX_ADMINS;
+    const isSuperAdmin = currentUserRole === 'super_admin';
+    const adminButtonDisabled = user.role !== 'admin' && user.role !== 'super_admin' && activeAdminCount >= MAX_ADMINS;
+    const superAdminButtonDisabled = user.role !== 'super_admin' && activeSuperAdminCount >= 1;
+
+    const roleLabel =
+      user.role === 'super_admin'
+        ? 'Super Admin'
+        : user.role.charAt(0).toUpperCase() + user.role.slice(1);
 
     return (
       <div
@@ -153,7 +199,12 @@ export default function UsersPage() {
         <div className="text-sm text-gray-500">{user.email}</div>
 
         <div className="text-sm mt-2 text-gray-700">
-          Role: <span className="font-bold">{user.role}</span>
+          Role:{' '}
+          <span
+            className={`font-bold ${user.role === 'super_admin' ? 'text-amber-600' : ''}`}
+          >
+            {roleLabel}
+          </span>
           {!user.active ? <span className="font-bold text-red-700"> • DEACTIVATED</span> : null}
         </div>
 
@@ -172,17 +223,30 @@ export default function UsersPage() {
             Editor
           </button>
 
-          <button
-            disabled={adminButtonDisabled}
-            onClick={() => updateRole(user.id, 'admin')}
-            className={`px-3 py-1 rounded text-white ${
-              adminButtonDisabled
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-purple-600'
-            }`}
-          >
-            Admin
-          </button>
+          {isSuperAdmin && (
+            <button
+              disabled={adminButtonDisabled}
+              onClick={() => updateRole(user.id, 'admin')}
+              className={`px-3 py-1 rounded text-white ${
+                adminButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600'
+              }`}
+            >
+              Admin
+            </button>
+          )}
+
+          {isSuperAdmin && (
+            <button
+              disabled={superAdminButtonDisabled}
+              onClick={() => updateRole(user.id, 'super_admin')}
+              className={`px-3 py-1 rounded text-white ${
+                superAdminButtonDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-amber-500'
+              }`}
+              title={superAdminButtonDisabled ? 'Only 1 super admin allowed per group' : 'Promote to Super Admin'}
+            >
+              Super Admin
+            </button>
+          )}
 
           <button
             onClick={() => toggleActive(user.id, !user.active)}
@@ -209,7 +273,7 @@ export default function UsersPage() {
         <p>Loading users...</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-6">
             <div className="bg-white border border-gray-300 rounded-xl p-4 shadow-sm">
               <p className="text-sm text-gray-500 font-medium">Total Users</p>
               <p className="text-2xl font-bold text-blue-900">{users.length}</p>
@@ -224,6 +288,13 @@ export default function UsersPage() {
               <p className="text-sm text-gray-500 font-medium">Active Admins</p>
               <p className="text-2xl font-bold text-blue-900">
                 {activeAdminCount} / {MAX_ADMINS}
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 shadow-sm">
+              <p className="text-sm text-amber-600 font-medium">Super Admin</p>
+              <p className="text-2xl font-bold text-amber-700">
+                {activeSuperAdminCount} / 1
               </p>
             </div>
 

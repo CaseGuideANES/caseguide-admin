@@ -23,6 +23,17 @@ export default function NewGuidePage() {
 
   async function createGuide() {
     setMessage('');
+
+    if (!title.trim()) {
+      setMessage('Error: Guide title is required.');
+      return;
+    }
+
+    if (!hospital.trim()) {
+      setMessage('Error: Hospital is required.');
+      return;
+    }
+
     setSaving(true);
 
     const { data: userData } = await supabase.auth.getUser();
@@ -52,11 +63,10 @@ export default function NewGuidePage() {
         : [];
 
     const { error } = await supabase.from('guides').insert({
-      title: title || '',
-      hospital: hospital || '',
+      title: title.trim(),
+      hospital: hospital.trim(),
       author_name: authorName || '',
       author_title: authorTitle || '',
-      author: authorName || '',
       summary: summary || '',
       induction: induction || '',
       maintenance: maintenance || '',

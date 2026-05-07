@@ -2,7 +2,7 @@
 
 import { supabase } from "@/src/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -12,8 +12,21 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
-  const updatePassword = async (e: React.FormEvent) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.replace("/sign-in");
+      } else {
+        setSessionChecked(true);
+      }
+    });
+  }, [router]);
+
+  if (!sessionChecked) return null;
+
+  const updatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setError("");
