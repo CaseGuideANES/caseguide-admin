@@ -31,9 +31,7 @@ export default function Marketing() {
       <div className="flex justify-center px-6 pb-20">
         <video
           src={videoUrl}
-          autoPlay
-          loop
-          muted
+          controls
           playsInline
           className="w-full max-w-2xl rounded-3xl shadow-2xl"
         />
