@@ -175,9 +175,11 @@ export default function HomePage() {
 <p className="mt-6 text-center text-xs font-medium text-slate-400">
           Admin access only
         </p>
-        <p className="mt-2 text-center text-xs text-slate-400">
+        <div className="mt-2 flex justify-center gap-4 text-xs text-slate-400">
+          <a href="/marketing" className="hover:underline">About CaseGuide</a>
+          <a href="/support" className="hover:underline">Support</a>
           <a href="/privacy" className="hover:underline">Privacy Policy</a>
-        </p>
+        </div>
       </div>
     </main>
   );
