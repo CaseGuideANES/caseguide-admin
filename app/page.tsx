@@ -108,6 +108,12 @@ export default function Home() {
           Admin access only
         </p>
       </div>
+
+      <div className="fixed bottom-6 flex gap-6 text-xs text-slate-400">
+        <a href="/marketing" className="hover:text-slate-700 transition">About CaseGuide</a>
+        <a href="/support" className="hover:text-slate-700 transition">Support</a>
+        <a href="/privacy" className="hover:text-slate-700 transition">Privacy Policy</a>
+      </div>
     </div>
   );
 }
