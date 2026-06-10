@@ -2,45 +2,45 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { supabaseAdmin } from '../../../src/lib/supabase/admin';
 
-async function requireAdmin() {
-  const cookieStore = await cookies();
+async function requireAdmin(request?: Request) {
+  // Try Authorization header first (most reliable for mutation requests)
+  const authHeader = request?.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (!error && user) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles').select('role').eq('id', user.id).single();
+      return profile?.role === 'admin' || profile?.role === 'super_admin';
+    }
+  }
 
+  // Fallback: cookie-based session
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
+    { cookies: { getAll() { return cookieStore.getAll(); } } }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
   const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+    .from('profiles').select('role').eq('id', user.id).single();
 
-  return profile?.role === 'admin';
+  return profile?.role === 'admin' || profile?.role === 'super_admin';
 }
 
-export async function GET() {
-  const isAdmin = await requireAdmin();
+export async function GET(request: Request) {
+  const isAdmin = await requireAdmin(request);
 
   if (!isAdmin) {
     return Response.json({ error: 'Not authorized' }, { status: 403 });
   }
 
   const { data: authUsers, error: authError } =
-    await supabaseAdmin.auth.admin.listUsers();
+    await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
 
   if (authError) {
     return Response.json({ error: authError.message }, { status: 500 });
@@ -78,6 +78,7 @@ export async function GET() {
     role: profile?.role || 'viewer',
     group_id: profile?.group_id || null,
     is_active: profile?.active ?? true,
+    last_sign_in_at: user.last_sign_in_at || null,
   };
 });
 
@@ -85,7 +86,7 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const isAdmin = await requireAdmin();
+  const isAdmin = await requireAdmin(request);
 
   if (!isAdmin) {
     return Response.json({ error: 'Not authorized' }, { status: 403 });
@@ -140,7 +141,7 @@ if (body.last_name !== undefined) {
 }
 
 export async function DELETE(request: Request) {
-  const isAdmin = await requireAdmin();
+  const isAdmin = await requireAdmin(request);
 
   if (!isAdmin) {
     return Response.json({ error: 'Not authorized' }, { status: 403 });
