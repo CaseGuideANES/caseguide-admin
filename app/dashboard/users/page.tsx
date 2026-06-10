@@ -13,7 +13,22 @@ type UserProfile = {
   last_name: string | null;
   role: Role;
   active: boolean;
+  last_sign_in_at: string | null;
 };
+
+function formatLastActive(dateStr: string | null): string {
+  if (!dateStr) return 'Never';
+  const date = new Date(dateStr);
+  const diffMs = Date.now() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
 
 const MAX_ADMINS = 3;
 
@@ -105,6 +120,7 @@ export default function UsersPage() {
       return;
     }
 
+    // Fetch profiles filtered by group at DB level (guaranteed complete)
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, full_name, first_name, last_name, role, active')
@@ -116,7 +132,26 @@ export default function UsersPage() {
       return;
     }
 
-    setUsers((data ?? []) as UserProfile[]);
+    // Fetch auth data (last_sign_in_at) and merge by id
+    const authRes = await fetch('/api/users');
+    const authJson = authRes.ok ? await authRes.json() : { users: [] };
+    const authMap: Record<string, string | null> = {};
+    for (const u of authJson.users ?? []) {
+      authMap[u.id] = u.last_sign_in_at ?? null;
+    }
+
+    const mapped: UserProfile[] = (data ?? []).map((p) => ({
+      id: p.id,
+      email: p.email ?? null,
+      full_name: p.full_name ?? null,
+      first_name: p.first_name ?? null,
+      last_name: p.last_name ?? null,
+      role: p.role as Role,
+      active: p.active ?? true,
+      last_sign_in_at: authMap[p.id] ?? null,
+    }));
+
+    setUsers(mapped);
     setLoading(false);
   };
 
@@ -208,6 +243,10 @@ export default function UsersPage() {
           {!user.active ? <span className="font-bold text-red-700"> • DEACTIVATED</span> : null}
         </div>
 
+        <div className="text-xs mt-1 text-gray-400">
+          Last active: {formatLastActive(user.last_sign_in_at)}
+        </div>
+
         <div className="flex gap-2 mt-3 flex-wrap">
           <button
             onClick={() => updateRole(user.id, 'viewer')}
@@ -256,6 +295,31 @@ export default function UsersPage() {
           >
             {user.active ? 'Deactivate' : 'Reactivate'}
           </button>
+
+          {isSuperAdmin && (
+            <button
+              onClick={async () => {
+                const confirmed = window.confirm(
+                  `Permanently delete ${getDisplayName(user)} (${user.email})? This cannot be undone.`
+                );
+                if (!confirmed) return;
+                const res = await fetch('/api/users', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userId: user.id }),
+                });
+                if (res.ok) {
+                  loadUsers();
+                } else {
+                  const json = await res.json();
+                  alert(json.error ?? 'Failed to delete user.');
+                }
+              }}
+              className="px-3 py-1 rounded bg-black text-red-400 border border-red-800"
+            >
+              Delete
+            </button>
+          )}
         </div>
       </div>
     );
