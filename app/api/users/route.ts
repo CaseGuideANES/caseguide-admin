@@ -154,9 +154,12 @@ export async function DELETE(request: Request) {
     return Response.json({ error: 'Missing user id' }, { status: 400 });
   }
 
-  // Null out non-cascading FK references before deleting the auth user
+  // Null out non-cascading FK references
   await supabaseAdmin.from('guides').update({ created_by: null }).eq('created_by', userId);
   await supabaseAdmin.from('admin_setup_codes').update({ used_by: null }).eq('used_by', userId);
+
+  // Delete profile first — avoids trigger issues when auth.users cascade fires
+  await supabaseAdmin.from('profiles').delete().eq('id', userId);
 
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
