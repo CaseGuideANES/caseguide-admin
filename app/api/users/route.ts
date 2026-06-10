@@ -163,7 +163,8 @@ export async function DELETE(request: Request) {
 
   const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
-  if (authError) {
+  // "User not found" means auth user was already deleted — still a success
+  if (authError && !authError.message.toLowerCase().includes('not found')) {
     return Response.json({ error: authError.message }, { status: 500 });
   }
 
