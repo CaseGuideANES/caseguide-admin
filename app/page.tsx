@@ -109,10 +109,18 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 text-xs text-slate-400">
-        <a href="/marketing" className="hover:text-slate-700 transition">About CaseGuide</a>
-        <a href="/support" className="hover:text-slate-700 transition">Support</a>
-        <a href="/privacy" className="hover:text-slate-700 transition">Privacy Policy</a>
+      <div className="fixed bottom-6 left-0 right-0 flex flex-col items-center gap-4">
+        <div className="flex justify-center gap-6 text-xs text-slate-400">
+          <a href="/support" className="hover:text-slate-700 transition">Support</a>
+          <a href="/privacy" className="hover:text-slate-700 transition">Privacy Policy</a>
+        </div>
+
+        <a
+          href="/marketing"
+          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition"
+        >
+          About CaseGuide
+        </a>
       </div>
     </div>
   );
