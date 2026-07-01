@@ -176,10 +176,18 @@ export default function HomePage() {
           Admin access only
         </p>
         <div className="mt-2 flex justify-center gap-4 text-xs text-slate-400">
-          <a href="/marketing" className="hover:underline">About CaseGuide</a>
           <a href="/support" className="hover:underline">Support</a>
           <a href="/privacy" className="hover:underline">Privacy Policy</a>
         </div>
+      </div>
+
+      <div className="fixed bottom-6 left-0 right-0 flex justify-center">
+        <a
+          href="/marketing"
+          className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
+        >
+          About CaseGuide
+        </a>
       </div>
     </main>
   );
