@@ -10,8 +10,8 @@ export default function Support() {
             <h2 className="text-base font-semibold text-slate-900 mb-2">Contact Us</h2>
             <p>
               For any questions, issues, or feedback, please reach out to us at:{' '}
-              <a href="mailto:punzzled@yahoo.com" className="text-blue-600 hover:underline">
-                punzzled@yahoo.com
+              <a href="mailto:caseguideapp@gmail.com" className="text-blue-600 hover:underline">
+                caseguideapp@gmail.com
               </a>
             </p>
             <p className="mt-2">We typically respond within 1–2 business days.</p>
@@ -32,8 +32,8 @@ export default function Support() {
                 <p className="font-medium text-slate-800">How do I request deletion of my account?</p>
                 <p className="mt-1">
                   Email us at{' '}
-                  <a href="mailto:punzzled@yahoo.com" className="text-blue-600 hover:underline">
-                    punzzled@yahoo.com
+                  <a href="mailto:caseguideapp@gmail.com" className="text-blue-600 hover:underline">
+                    caseguideapp@gmail.com
                   </a>{' '}
                   with your request and we will delete your account and data promptly.
                 </p>

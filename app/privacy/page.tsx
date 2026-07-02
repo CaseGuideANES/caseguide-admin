@@ -39,7 +39,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-base font-semibold text-slate-900 mb-2">7. Contact Us</h2>
-            <p>For privacy-related questions, contact us at: <a href="mailto:punzzled@yahoo.com" className="text-blue-600 hover:underline">punzzled@yahoo.com</a></p>
+            <p>For privacy-related questions, contact us at: <a href="mailto:caseguideapp@gmail.com" className="text-blue-600 hover:underline">caseguideapp@gmail.com</a></p>
           </section>
         </div>
       </div>
