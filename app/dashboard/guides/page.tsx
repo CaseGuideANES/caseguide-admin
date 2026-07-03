@@ -2,7 +2,7 @@
 
 import { supabase } from '@/src/lib/supabase/client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 type Guide = {
   id: string;
@@ -18,6 +18,28 @@ export default function GuidesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Guide | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedHospital, setSelectedHospital] = useState<string | null>(null);
+
+  const hospitals = useMemo(
+    () => [...new Set(guides.map((g) => g.hospital).filter(Boolean) as string[])],
+    [guides]
+  );
+
+  const filteredGuides = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+
+    return guides.filter((g) => {
+      const matchesSearch =
+        g.title?.toLowerCase().includes(q) ||
+        g.hospital?.toLowerCase().includes(q) ||
+        g.summary?.toLowerCase().includes(q);
+
+      const matchesHospital = selectedHospital ? g.hospital === selectedHospital : true;
+
+      return matchesSearch && matchesHospital;
+    });
+  }, [guides, searchQuery, selectedHospital]);
 
   const checkAdmin = async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -31,7 +53,7 @@ export default function GuidesPage() {
       .eq('id', user.id)
       .single();
 
-    setIsAdmin(data?.role === 'admin');
+    setIsAdmin(data?.role === 'admin' || data?.role === 'super_admin');
   };
 
   const loadGuides = async () => {
@@ -128,6 +150,61 @@ export default function GuidesPage() {
         </div>
       )}
 
+      {/* Search + hospital filter */}
+      {guides.length > 0 && (
+        <div className="space-y-3">
+          <div className="relative">
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search guides..."
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+            />
+            {searchQuery.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-slate-600"
+                aria-label="Clear search"
+              >
+                &times;
+              </button>
+            )}
+          </div>
+
+          {hospitals.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedHospital(null)}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                  selectedHospital === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                All
+              </button>
+
+              {hospitals.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setSelectedHospital(h)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                    selectedHospital === h
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Table */}
       <div className="premium-card overflow-hidden">
         <div className="border-b border-slate-200/70 px-6 py-4">
@@ -146,6 +223,8 @@ export default function GuidesPage() {
               Create your first guide
             </Link>
           </div>
+        ) : filteredGuides.length === 0 ? (
+          <p className="p-6 text-sm text-slate-500">No guides match your search.</p>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
@@ -159,13 +238,18 @@ export default function GuidesPage() {
             </thead>
 
             <tbody>
-              {guides.map((guide) => (
+              {filteredGuides.map((guide) => (
                 <tr
                   key={guide.id}
                   className="border-t border-slate-200/70 hover:bg-slate-50"
                 >
                   <td className="px-6 py-4 font-semibold text-slate-900">
-                    {guide.title}
+                    <Link
+                      href={`/dashboard/guides/${guide.id}`}
+                      className="hover:text-blue-600 hover:underline"
+                    >
+                      {guide.title}
+                    </Link>
                   </td>
 
                   <td className="px-6 py-4 text-slate-600">
@@ -184,6 +268,13 @@ export default function GuidesPage() {
 
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/dashboard/guides/${guide.id}`}
+                        className="soft-button text-xs"
+                      >
+                        View
+                      </Link>
+
                       <Link
                         href={`/dashboard/guides/${guide.id}/edit`}
                         className="soft-button text-xs"

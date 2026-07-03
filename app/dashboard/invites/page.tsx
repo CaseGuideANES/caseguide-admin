@@ -33,7 +33,7 @@ export default function InvitesPage() {
       .single();
 
     setGroupId(data?.group_id ?? null);
-    setIsAdmin(data?.role === 'admin');
+    setIsAdmin(data?.role === 'admin' || data?.role === 'super_admin');
   };
 
   const loadInvites = async () => {
