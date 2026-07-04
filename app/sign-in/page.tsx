@@ -183,7 +183,7 @@ export default function HomePage() {
 
       <div className="fixed bottom-6 left-0 right-0 flex justify-center">
         <a
-          href="/marketing"
+          href="/about"
           className="rounded-2xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
         >
           About CaseGuide

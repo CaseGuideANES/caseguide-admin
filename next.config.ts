@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         destination: "/sign-in",
         permanent: false,
       },
+      {
+        source: "/marketing",
+        destination: "/about",
+        permanent: true,
+      },
     ];
   },
 };

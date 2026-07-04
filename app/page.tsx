@@ -116,7 +116,7 @@ export default function Home() {
         </div>
 
         <a
-          href="/marketing"
+          href="/about"
           className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-slate-800 transition"
         >
           About CaseGuide
